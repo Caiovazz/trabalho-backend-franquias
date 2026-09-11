@@ -1,0 +1,25 @@
+@baseUrl = https://localhost:7051
+
+### Dados aceitos pelas validacoes atuais
+# Resultado esperado: 200 OK.
+POST {{baseUrl}}/api/franqueadoras/validar
+Content-Type: application/json
+Accept: application/json
+
+{
+  "nome": "Rede Exemplo",
+  "cnpj": "12345678000195",
+  "email": "contato@example.com"
+}
+
+### Campos obrigatorios vazios e email invalido
+# Resultado esperado: 400 Bad Request.
+POST {{baseUrl}}/api/franqueadoras/validar
+Content-Type: application/json
+Accept: application/json
+
+{
+  "nome": "",
+  "cnpj": "",
+  "email": "email-invalido"
+}
