@@ -21,6 +21,7 @@ namespace Franquias.Api
         public DbSet<ItemVenda> ItensVenda { get; set; }
         public DbSet<Chamado> Chamados { get; set; }
         public DbSet<RoyaltyConfig> RoyaltyConfigs { get; set; }
+        public DbSet<Responsavel> Responsaveis { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -44,6 +45,10 @@ namespace Franquias.Api
                 .HasIndex(e => new { e.ProdutoId, e.UnidadeId })
                 .IsUnique();
 
+            modelBuilder.Entity<Responsavel>()
+                .HasIndex(r => new { r.UnidadeId, r.Cpf })
+                .IsUnique();
+
             modelBuilder.Entity<Franqueadora>()
                 .HasMany(f => f.Unidades)
                 .WithOne(u => u.Franqueadora)
@@ -55,6 +60,12 @@ namespace Franquias.Api
                 .WithMany()
                 .HasForeignKey(m => m.EstoqueUnidadeId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Responsavel>()
+                .HasOne(r => r.Unidade)
+                .WithMany()
+                .HasForeignKey(r => r.UnidadeId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             base.OnModelCreating(modelBuilder);
         }
