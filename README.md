@@ -1,73 +1,177 @@
-# Gestão de Franquias
+# 🏢 Sistema de Governança de Franquias
 
-Projeto acadêmico de uma API para gestão de franquias,
-desenvolvido em C# com ASP.NET Core.
+API RESTful desenvolvida para a **administração centralizada e o controle operacional de redes de franquias**.
 
-## Tecnologias
+Este projeto universitário foi desenvolvido em **C#**, utilizando a plataforma **ASP.NET Core**, e tem como objetivo estruturar uma solução para gerenciamento de franqueadoras, unidades, usuários e demais operações relacionadas à rede de franquias.
 
-- C#
-- ASP.NET Core com .NET 10
-- Swagger/OpenAPI
-- Git e GitHub
-- PostgreSQL e Entity Framework Core: integração planejada
+---
 
-## Estado atual
+## 🛠️ Stack Tecnológica
 
-A API possui um endpoint inicial para validar os dados
-de uma franqueadora.
+| Tecnologia | Utilização |
+|---|---|
+| **C#** | Linguagem de programação |
+| **.NET 10** | Plataforma de desenvolvimento |
+| **ASP.NET Core Web API** | Desenvolvimento da API RESTful |
+| **Swagger / OpenAPI** | Documentação e testes dos endpoints |
+| **Git & GitHub** | Controle de versão e hospedagem do código |
+| **MySQL** | Banco de dados |
+| **Entity Framework Core** | ORM e persistência de dados |
 
-São verificados:
-- Preenchimento do nome.
-- Preenchimento do CNPJ.
-- Preenchimento e formato do e-mail.
+> **Status da persistência:** a integração com MySQL e Entity Framework Core está prevista para as próximas etapas do projeto.
 
-Nesta etapa, o endpoint devolve os dados recebidos,
-sem gravá-los no banco.
+---
 
-A validação dos dígitos do CNPJ e a verificação de
-registros duplicados ainda serão implementadas.
+## 🏗️ Arquitetura e Estágio Atual
 
-## Requisitos
+Atualmente, a API possui um fluxo inicial destinado à **validação e sanitização dos dados cadastrais da franqueadora principal**.
 
-- SDK do .NET 10 instalado.
+Nesta primeira etapa, os dados recebidos são processados **em memória**, sem persistência no banco de dados.
 
-A versão inicial pode ser executada sem configurar o PostgreSQL.
+### ✅ Validações Ativas
 
-## Como executar
+- Verificação da presença do campo **Nome/Razão Social**;
+- Verificação da presença do **CNPJ**;
+- Verificação da obrigatoriedade do **e-mail**;
+- Validação do formato sintático do e-mail.
 
-Abra o terminal na pasta principal gestao-franquias e execute:
+### 🔜 Próximas Validações
 
-```powershell
-dotnet run --project .\Franquias.Api\Franquias.Api.csproj --launch-profile "Franquias.Api"
+Nas próximas etapas serão implementadas:
+
+- Validação matemática dos dígitos verificadores do CNPJ;
+- Verificação de duplicidade no banco de dados;
+- Persistência definitiva dos dados.
+
+---
+
+## 📋 Pré-requisitos
+
+Para executar a versão atual do projeto, é necessário possuir:
+
+- **.NET 10 SDK** instalado.
+
+> 💡 **Observação:** não é necessário possuir uma instância do **MySQL** em execução para utilizar esta versão preliminar da aplicação.
+
+---
+
+## 🚀 Como Executar
+
+### 1. Acesse a raiz do projeto
+
+Abra um terminal na pasta:
+
+```text
+trabalho-backend-franquias
 ```
 
-Mantenha o terminal aberto enquanto utiliza a API.
+### 2. Execute a aplicação
 
-Acesse o [Swagger](https://localhost:7051/swagger/index.html).
+```bash
+dotnet run --project ./Franquias.Api/Franquias.Api.csproj --launch-profile "Franquias.Api"
+```
 
-Para encerrar a API, pressione Ctrl + C no terminal.
+### 3. Acesse o Swagger
 
-## Endpoint de validação
+Com a aplicação em execução, abra:
 
+[Swagger UI — Franquias API](https://localhost:7051/swagger/index.html?utm_source=chatgpt.com)
+
+Através do Swagger é possível visualizar a documentação da API e realizar testes diretamente pelo navegador.
+
+### 4. Encerrar a aplicação
+
+Para interromper o servidor, utilize:
+
+```text
+Ctrl + C
+```
+
+---
+
+## 🔗 Mapeamento de Rotas
+
+### 🏢 Checagem Cadastral
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `POST` | `/api/franqueadoras/validar` | Valida os dados cadastrais da franqueadora |
+
+### Exemplo de requisição
+
+```http
 POST /api/franqueadoras/validar
+Content-Type: application/json
+```
 
-## Testes manuais realizados no Swagger
+```json
+{
+  "nome": "Franqueadora Exemplo LTDA",
+  "cnpj": "00.000.000/0001-00",
+  "email": "contato@exemplo.com"
+}
+```
 
-| Cenário | Resultado observado |
+---
+
+## 🧪 Registro de Testes Operacionais
+
+Os testes iniciais foram realizados através do **Swagger UI**.
+
+| Cenário | Resultado |
 |---|---|
-| Nome e CNPJ preenchidos e e-mail com formato válido | 200 OK |
-| Nome e CNPJ vazios e e-mail com formato inválido | 400 Bad Request |
+| Razão Social, CNPJ e e-mail válidos | `200 OK` |
+| Campos obrigatórios ausentes | `400 Bad Request` |
+| E-mail em formato inválido | `400 Bad Request` |
 
-O resultado 200 confirma que os dados passaram pelas
-validações atuais. Não representa um cadastro no banco.
+> ⚠️ **Importante:** o código HTTP `200 OK` indica apenas que a requisição atendeu às regras de negócio implementadas nesta etapa. Isso **não significa que os dados foram gravados no banco de dados**.
 
-## Próximas implementações
+---
 
-- Integração com PostgreSQL usando Entity Framework Core.
-- Cadastros de franqueadoras, unidades e responsáveis.
-- Usuários, autenticação e autorização.
-- Produtos, categorias e fornecedores.
-- Estoque e vendas.
-- Royalties.
-- Chamados de suporte.
-- Indicadores e consultas.
+## 🗺️ Roadmap
+
+O desenvolvimento do sistema está planejado em etapas:
+
+### 💾 Persistência
+- [ ] Configuração do **Entity Framework Core**;
+- [ ] Configuração da conexão com **MySQL**;
+- [ ] Criação e gerenciamento das **migrations**;
+- [ ] Persistência dos dados cadastrais.
+
+### 🏢 Gestão de Franquias
+- [ ] CRUD de **Franqueadoras**;
+- [ ] CRUD de **Filiais/Unidades**;
+- [ ] CRUD de **Gestores**.
+
+### 🔐 Identidade e Segurança
+- [ ] Implementação de **Identidade**;
+- [ ] Autenticação;
+- [ ] Autorização;
+- [ ] Controle de acesso baseado em funções (**RBAC**).
+
+### 📦 Produtos e Fornecedores
+- [ ] Gestão do catálogo de produtos;
+- [ ] Gestão de categorias;
+- [ ] Gestão da rede de fornecedores.
+
+### 💰 Operações
+- [ ] Módulo de vendas;
+- [ ] Controle de estoque das unidades;
+- [ ] Mapeamento e cobrança de royalties.
+
+### 🎧 Atendimento
+- [ ] Central de atendimento;
+- [ ] Sistema de chamados (**Helpdesk**).
+
+### 📊 Indicadores e Relatórios
+- [ ] Dashboard de indicadores de desempenho;
+- [ ] Relatórios analíticos;
+- [ ] Visualização de métricas da rede de franquias.
+
+---
+
+## 📌 Status do Projeto
+
+**Em desenvolvimento 🚧**
+
+O projeto encontra-se em sua fase inicial, com a estrutura da API e as primeiras regras de validação implementadas. As próximas etapas estão concentradas na integração com o banco de dados, persistência das informações e expansão dos módulos de negócio.
