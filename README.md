@@ -1,4 +1,4 @@
-# 🏢 Sistema de Governança de Franquias
+# 🏢 API de Gestão e Operações de Franquias
 
 API RESTful desenvolvida para a **administração centralizada e o controle operacional de redes de franquias**.
 
