@@ -23,16 +23,94 @@ namespace Franquias.Api.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Administrador,Gestor,Operador")]
-        public async Task<ActionResult<List<VendaDto>>> ObterTodos([FromQuery] int? unidadeId)
+        public async Task<ActionResult<List<VendaDto>>> ObterTodos(
+            [FromQuery] int? unidadeId,
+            [FromQuery] DateTime? dataInicial,
+            [FromQuery] DateTime? dataFinal,
+            [FromQuery] int pagina = 1,
+            [FromQuery] int tamanhoPagina = 20,
+            [FromQuery] string ordenarPor = "data",
+            [FromQuery] bool decrescente = true)
         {
-            var query = _db.Vendas.AsNoTracking().AsQueryable();
+            if (pagina < 1)
+            {
+                return BadRequest(
+                    "A página deve ser maior ou igual a 1.");
+            }
+
+            if (tamanhoPagina < 1 ||
+                tamanhoPagina > 100)
+            {
+                return BadRequest(
+                    "O tamanho da página deve estar entre 1 e 100.");
+            }
+
+            if (dataInicial.HasValue &&
+                dataFinal.HasValue &&
+                dataFinal.Value.Date <
+                dataInicial.Value.Date)
+            {
+                return BadRequest(
+                    "A data final não pode ser anterior à data inicial.");
+            }
+
+            var query = _db.Vendas
+                .AsNoTracking()
+                .AsQueryable();
 
             if (unidadeId.HasValue)
             {
-                query = query.Where(v => v.UnidadeId == unidadeId.Value);
+                query = query.Where(
+                    v => v.UnidadeId == unidadeId.Value);
+            }
+
+            if (dataInicial.HasValue)
+            {
+                var inicio = dataInicial.Value.Date;
+
+                query = query.Where(
+                    v => v.DataVenda >= inicio);
+            }
+
+            if (dataFinal.HasValue)
+            {
+                var fimExclusivo =
+                    dataFinal.Value.Date.AddDays(1);
+
+                query = query.Where(
+                    v => v.DataVenda < fimExclusivo);
+            }
+
+            var total = await query.CountAsync();
+
+            Response.Headers["X-Total-Count"] =
+                total.ToString();
+
+            switch (ordenarPor.Trim().ToLowerInvariant())
+            {
+                case "id":
+                    query = decrescente
+                        ? query.OrderByDescending(v => v.Id)
+                        : query.OrderBy(v => v.Id);
+                    break;
+
+                case "total":
+                    query = decrescente
+                        ? query.OrderByDescending(v => v.Total)
+                        : query.OrderBy(v => v.Total);
+                    break;
+
+                default:
+                    query = decrescente
+                        ? query.OrderByDescending(
+                            v => v.DataVenda)
+                        : query.OrderBy(v => v.DataVenda);
+                    break;
             }
 
             var vendas = await query
+                .Skip((pagina - 1) * tamanhoPagina)
+                .Take(tamanhoPagina)
                 .Select(v => new VendaDto
                 {
                     Id = v.Id,
@@ -40,11 +118,13 @@ namespace Franquias.Api.Controllers
                     UsuarioId = v.UsuarioId,
                     DataVenda = v.DataVenda,
                     Total = v.Total,
-                    Itens = v.Itens.Select(i => new ItemVendaDto
-                    {
-                        ProdutoId = i.ProdutoId,
-                        Quantidade = i.Quantidade
-                    }).ToList()
+                    Itens = v.Itens
+                        .Select(i => new ItemVendaDto
+                        {
+                            ProdutoId = i.ProdutoId,
+                            Quantidade = i.Quantidade
+                        })
+                        .ToList()
                 })
                 .ToListAsync();
 
@@ -53,76 +133,104 @@ namespace Franquias.Api.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Administrador,Gestor,Operador")]
-        public async Task<ActionResult<VendaDto>> Criar([FromBody] CriarVendaDto dto)
+        public async Task<ActionResult<VendaDto>> Criar(
+            [FromBody] CriarVendaDto dto)
         {
-            var idDoToken = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            var idDoToken =
+                User.FindFirst(
+                    ClaimTypes.NameIdentifier)?.Value
                 ?? User.FindFirst("sub")?.Value;
 
-            if (!int.TryParse(idDoToken, out var usuarioId) || usuarioId <= 0)
+            if (!int.TryParse(
+                    idDoToken,
+                    out var usuarioId) ||
+                usuarioId <= 0)
             {
-                return Unauthorized("Não foi possível identificar o usuário autenticado.");
+                return Unauthorized(
+                    "Não foi possível identificar o usuário autenticado.");
             }
 
-            var usuario = await _db.Usuarios.AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == usuarioId && u.Ativo);
+            var usuario = await _db.Usuarios
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u =>
+                    u.Id == usuarioId &&
+                    u.Ativo);
 
             if (usuario == null)
             {
-                return Unauthorized("Usuário não encontrado ou inativo.");
+                return Unauthorized(
+                    "Usuário não encontrado ou inativo.");
             }
 
             if (dto.UnidadeId <= 0)
             {
-                return BadRequest("Informe uma unidade válida.");
+                return BadRequest(
+                    "Informe uma unidade válida.");
             }
 
-            if (dto.Itens == null || dto.Itens.Count == 0)
+            if (dto.Itens == null ||
+                dto.Itens.Count == 0)
             {
-                return BadRequest("A venda precisa conter itens.");
+                return BadRequest(
+                    "A venda precisa conter itens.");
             }
 
-            if (dto.Itens.Any(i => i == null || i.ProdutoId <= 0 || i.Quantidade <= 0))
+            if (dto.Itens.Any(i =>
+                i == null ||
+                i.ProdutoId <= 0 ||
+                i.Quantidade <= 0))
             {
-                return BadRequest("Todos os itens precisam ter produto e quantidade válidos.");
+                return BadRequest(
+                    "Todos os itens precisam ter produto e quantidade válidos.");
             }
 
-            // Soma as quantidades de produtos repetidos antes de conferir o saldo.
             var grupos = dto.Itens
                 .GroupBy(i => i.ProdutoId)
                 .Select(g => new
                 {
                     ProdutoId = g.Key,
-                    Quantidade = g.Sum(i => (long)i.Quantidade)
+                    Quantidade = g.Sum(
+                        i => (long)i.Quantidade)
                 })
                 .OrderBy(g => g.ProdutoId)
                 .ToList();
 
-            if (grupos.Any(g => g.Quantidade > int.MaxValue))
+            if (grupos.Any(g =>
+                g.Quantidade > int.MaxValue))
             {
-                return BadRequest("A quantidade total de um produto excede o limite permitido.");
+                return BadRequest(
+                    "A quantidade total de um produto excede o limite permitido.");
             }
 
-            var itensAgrupados = grupos.Select(g => new ItemVendaDto
-            {
-                ProdutoId = g.ProdutoId,
-                Quantidade = (int)g.Quantidade
-            }).ToList();
+            var itensAgrupados = grupos
+                .Select(g => new ItemVendaDto
+                {
+                    ProdutoId = g.ProdutoId,
+                    Quantidade = (int)g.Quantidade
+                })
+                .ToList();
 
-            var unidade = await _db.Unidades.AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == dto.UnidadeId);
+            var unidade = await _db.Unidades
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u =>
+                    u.Id == dto.UnidadeId);
+
             if (unidade == null)
             {
-                return NotFound("Unidade não encontrada.");
+                return NotFound(
+                    "Unidade não encontrada.");
             }
 
             if (!unidade.Ativa)
             {
-                return BadRequest("Não é permitido vender para uma unidade inativa.");
+                return BadRequest(
+                    "Não é permitido vender para uma unidade inativa.");
             }
 
-            // Sem CommitAsync, a transação é desfeita ao sair deste método,
-            // inclusive em retornos antecipados ou exceções.
-            await using var transacao = await _db.Database.BeginTransactionAsync();
+            await using var transacao =
+                await _db.Database
+                    .BeginTransactionAsync();
+
             var dataVenda = DateTime.UtcNow;
 
             var venda = new Venda
@@ -133,53 +241,73 @@ namespace Franquias.Api.Controllers
                 Total = 0
             };
 
-            decimal total = 0;
+            decimal totalVenda = 0;
             var itens = new List<ItemVenda>();
 
             foreach (var itemDto in itensAgrupados)
             {
-                var produto = await _db.Produtos.AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == itemDto.ProdutoId);
+                var produto = await _db.Produtos
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p =>
+                        p.Id == itemDto.ProdutoId);
+
                 if (produto == null)
                 {
-                    return BadRequest($"Produto {itemDto.ProdutoId} não encontrado.");
+                    return BadRequest(
+                        $"Produto {itemDto.ProdutoId} não encontrado.");
                 }
 
                 if (!produto.Ativo)
                 {
-                    return BadRequest($"Produto {produto.Nome} não está ativo.");
+                    return BadRequest(
+                        $"Produto {produto.Nome} não está ativo.");
                 }
 
                 if (produto.Preco <= 0)
                 {
-                    return BadRequest($"O produto {produto.Nome} possui preço inválido.");
+                    return BadRequest(
+                        $"O produto {produto.Nome} possui preço inválido.");
                 }
 
                 var estoqueId = await _db.Estoques
-                    .Where(e => e.ProdutoId == itemDto.ProdutoId && e.UnidadeId == dto.UnidadeId)
+                    .Where(e =>
+                        e.ProdutoId ==
+                            itemDto.ProdutoId &&
+                        e.UnidadeId ==
+                            dto.UnidadeId)
                     .Select(e => (int?)e.Id)
                     .SingleOrDefaultAsync();
 
                 if (!estoqueId.HasValue)
                 {
-                    return BadRequest($"Estoque insuficiente para o produto {produto.Nome}.");
+                    return BadRequest(
+                        $"Estoque insuficiente para o produto {produto.Nome}.");
                 }
 
-                // Confere e desconta o saldo na mesma operação do banco.
-                // Não carrega uma entidade de estoque rastreada pelo EF.
                 var quantidade = itemDto.Quantidade;
-                var linhasAtualizadas = await _db.Estoques
-                    .Where(e => e.Id == estoqueId.Value && e.Quantidade >= quantidade)
-                    .ExecuteUpdateAsync(setters => setters
-                        .SetProperty(e => e.Quantidade, e => e.Quantidade - quantidade));
+
+                var linhasAtualizadas =
+                    await _db.Estoques
+                        .Where(e =>
+                            e.Id == estoqueId.Value &&
+                            e.Quantidade >= quantidade)
+                        .ExecuteUpdateAsync(setters =>
+                            setters.SetProperty(
+                                e => e.Quantidade,
+                                e => e.Quantidade -
+                                     quantidade));
 
                 if (linhasAtualizadas != 1)
                 {
-                    return BadRequest($"Estoque insuficiente para o produto {produto.Nome}.");
+                    return BadRequest(
+                        $"Estoque insuficiente para o produto {produto.Nome}.");
                 }
 
-                var subtotal = produto.Preco * itemDto.Quantidade;
-                total += subtotal;
+                var subtotal =
+                    produto.Preco *
+                    itemDto.Quantidade;
+
+                totalVenda += subtotal;
 
                 itens.Add(new ItemVenda
                 {
@@ -189,17 +317,20 @@ namespace Franquias.Api.Controllers
                     Subtotal = subtotal
                 });
 
-                _db.MovimentosEstoque.Add(new MovimentoEstoque
-                {
-                    EstoqueUnidadeId = estoqueId.Value,
-                    Tipo = TipoMovimentoEstoque.Saida,
-                    Quantidade = quantidade,
-                    Motivo = "Venda",
-                    DataMovimento = dataVenda
-                });
+                _db.MovimentosEstoque.Add(
+                    new MovimentoEstoque
+                    {
+                        EstoqueUnidadeId =
+                            estoqueId.Value,
+                        Tipo =
+                            TipoMovimentoEstoque.Saida,
+                        Quantidade = quantidade,
+                        Motivo = "Venda",
+                        DataMovimento = dataVenda
+                    });
             }
 
-            venda.Total = total;
+            venda.Total = totalVenda;
             venda.Itens = itens;
 
             _db.Vendas.Add(venda);
@@ -207,15 +338,18 @@ namespace Franquias.Api.Controllers
 
             await transacao.CommitAsync();
 
-            return CreatedAtAction(nameof(ObterTodos), new { unidadeId = dto.UnidadeId }, new VendaDto
-            {
-                Id = venda.Id,
-                UnidadeId = venda.UnidadeId,
-                UsuarioId = venda.UsuarioId,
-                DataVenda = venda.DataVenda,
-                Total = venda.Total,
-                Itens = itensAgrupados
-            });
+            return CreatedAtAction(
+                nameof(ObterTodos),
+                new { unidadeId = dto.UnidadeId },
+                new VendaDto
+                {
+                    Id = venda.Id,
+                    UnidadeId = venda.UnidadeId,
+                    UsuarioId = venda.UsuarioId,
+                    DataVenda = venda.DataVenda,
+                    Total = venda.Total,
+                    Itens = itensAgrupados
+                });
         }
     }
 }

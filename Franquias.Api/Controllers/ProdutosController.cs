@@ -21,11 +21,99 @@ namespace Franquias.Api.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Administrador,Gestor,Operador")]
-        public async Task<ActionResult<List<ProdutoDto>>> ObterTodos([FromQuery] int? franqueadoraId)
+        public async Task<ActionResult<List<ProdutoDto>>> ObterTodos(
+            [FromQuery] int? franqueadoraId,
+            [FromQuery] string? nome,
+            [FromQuery] int? categoriaId,
+            [FromQuery] bool? ativo,
+            [FromQuery] int pagina = 1,
+            [FromQuery] int tamanhoPagina = 20,
+            [FromQuery] string ordenarPor = "nome",
+            [FromQuery] bool decrescente = false)
         {
-            var query = _db.Produtos.AsQueryable();
+            if (pagina < 1)
+            {
+                return BadRequest(
+                    "A página deve ser maior ou igual a 1.");
+            }
+
+            if (tamanhoPagina < 1 || tamanhoPagina > 100)
+            {
+                return BadRequest(
+                    "O tamanho da página deve estar entre 1 e 100.");
+            }
+
+            var query = _db.Produtos
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (franqueadoraId.HasValue)
+            {
+                query = query.Where(p =>
+                    _db.Estoques.Any(e =>
+                        e.ProdutoId == p.Id &&
+                        e.Unidade != null &&
+                        e.Unidade.FranqueadoraId ==
+                            franqueadoraId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(nome))
+            {
+                var termo = nome.Trim();
+
+                query = query.Where(
+                    p => p.Nome.Contains(termo));
+            }
+
+            if (categoriaId.HasValue)
+            {
+                query = query.Where(
+                    p => p.CategoriaId ==
+                         categoriaId.Value);
+            }
+
+            if (ativo.HasValue)
+            {
+                query = query.Where(
+                    p => p.Ativo == ativo.Value);
+            }
+
+            var total = await query.CountAsync();
+            Response.Headers["X-Total-Count"] =
+                total.ToString();
+
+            switch (ordenarPor.Trim().ToLowerInvariant())
+            {
+                case "id":
+                    query = decrescente
+                        ? query.OrderByDescending(p => p.Id)
+                        : query.OrderBy(p => p.Id);
+                    break;
+
+                case "preco":
+                    query = decrescente
+                        ? query.OrderByDescending(p => p.Preco)
+                        : query.OrderBy(p => p.Preco);
+                    break;
+
+                case "estoqueminimo":
+                    query = decrescente
+                        ? query.OrderByDescending(
+                            p => p.EstoqueMinimo)
+                        : query.OrderBy(
+                            p => p.EstoqueMinimo);
+                    break;
+
+                default:
+                    query = decrescente
+                        ? query.OrderByDescending(p => p.Nome)
+                        : query.OrderBy(p => p.Nome);
+                    break;
+            }
 
             var produtos = await query
+                .Skip((pagina - 1) * tamanhoPagina)
+                .Take(tamanhoPagina)
                 .Select(p => new ProdutoDto
                 {
                     Id = p.Id,
@@ -44,9 +132,11 @@ namespace Franquias.Api.Controllers
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Administrador,Gestor,Operador")]
-        public async Task<ActionResult<ProdutoDto>> ObterPorId(int id)
+        public async Task<ActionResult<ProdutoDto>>
+            ObterPorId(int id)
         {
             var produto = await _db.Produtos
+                .AsNoTracking()
                 .Where(p => p.Id == id)
                 .Select(p => new ProdutoDto
                 {
@@ -63,7 +153,8 @@ namespace Franquias.Api.Controllers
 
             if (produto == null)
             {
-                return NotFound();
+                return NotFound(
+                    "Produto não encontrado.");
             }
 
             return Ok(produto);
@@ -71,27 +162,50 @@ namespace Franquias.Api.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Administrador,Gestor")]
-        public async Task<ActionResult<ProdutoDto>> Criar([FromBody] CriarProdutoDto dto)
+        public async Task<ActionResult<ProdutoDto>> Criar(
+            [FromBody] CriarProdutoDto dto)
         {
-            var categoriaExiste = await _db.Categorias.AnyAsync(c => c.Id == dto.CategoriaId);
+            if (dto.Preco <= 0)
+            {
+                return BadRequest(
+                    "O preço deve ser maior que zero.");
+            }
+
+            if (dto.EstoqueMinimo < 0)
+            {
+                return BadRequest(
+                    "O estoque mínimo não pode ser negativo.");
+            }
+
+            var categoriaExiste =
+                await _db.Categorias.AnyAsync(c =>
+                    c.Id == dto.CategoriaId &&
+                    c.Ativa);
+
             if (!categoriaExiste)
             {
-                return BadRequest("Categoria informada não existe.");
+                return BadRequest(
+                    "A categoria informada não existe ou está inativa.");
             }
 
             if (dto.FornecedorId.HasValue)
             {
-                var fornecedorExiste = await _db.Fornecedores.AnyAsync(f => f.Id == dto.FornecedorId.Value);
+                var fornecedorExiste =
+                    await _db.Fornecedores.AnyAsync(f =>
+                        f.Id == dto.FornecedorId.Value &&
+                        f.Ativo);
+
                 if (!fornecedorExiste)
                 {
-                    return BadRequest("Fornecedor informado não existe.");
+                    return BadRequest(
+                        "O fornecedor informado não existe ou está inativo.");
                 }
             }
 
             var produto = new Produto
             {
-                Nome = dto.Nome,
-                Descricao = dto.Descricao,
+                Nome = dto.Nome.Trim(),
+                Descricao = dto.Descricao.Trim(),
                 Preco = dto.Preco,
                 EstoqueMinimo = dto.EstoqueMinimo,
                 CategoriaId = dto.CategoriaId,
@@ -102,7 +216,128 @@ namespace Franquias.Api.Controllers
             _db.Produtos.Add(produto);
             await _db.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(ObterPorId), new { id = produto.Id }, new ProdutoDto
+            return CreatedAtAction(
+                nameof(ObterPorId),
+                new { id = produto.Id },
+                ParaDto(produto));
+        }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Administrador,Gestor")]
+        public async Task<IActionResult> Atualizar(
+            int id,
+            [FromBody] AtualizarProdutoDto dto)
+        {
+            var produto = await _db.Produtos
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (produto == null)
+            {
+                return NotFound(
+                    "Produto não encontrado.");
+            }
+
+            if (dto.Preco.HasValue &&
+                dto.Preco.Value <= 0)
+            {
+                return BadRequest(
+                    "O preço deve ser maior que zero.");
+            }
+
+            if (dto.EstoqueMinimo.HasValue &&
+                dto.EstoqueMinimo.Value < 0)
+            {
+                return BadRequest(
+                    "O estoque mínimo não pode ser negativo.");
+            }
+
+            if (dto.CategoriaId.HasValue)
+            {
+                var categoriaExiste =
+                    await _db.Categorias.AnyAsync(c =>
+                        c.Id == dto.CategoriaId.Value &&
+                        c.Ativa);
+
+                if (!categoriaExiste)
+                {
+                    return BadRequest(
+                        "A categoria informada não existe ou está inativa.");
+                }
+
+                produto.CategoriaId =
+                    dto.CategoriaId.Value;
+            }
+
+            if (dto.FornecedorId.HasValue)
+            {
+                var fornecedorExiste =
+                    await _db.Fornecedores.AnyAsync(f =>
+                        f.Id == dto.FornecedorId.Value &&
+                        f.Ativo);
+
+                if (!fornecedorExiste)
+                {
+                    return BadRequest(
+                        "O fornecedor informado não existe ou está inativo.");
+                }
+
+                produto.FornecedorId =
+                    dto.FornecedorId.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Nome))
+            {
+                produto.Nome = dto.Nome.Trim();
+            }
+
+            if (dto.Descricao != null)
+            {
+                produto.Descricao =
+                    dto.Descricao.Trim();
+            }
+
+            if (dto.Preco.HasValue)
+            {
+                produto.Preco = dto.Preco.Value;
+            }
+
+            if (dto.EstoqueMinimo.HasValue)
+            {
+                produto.EstoqueMinimo =
+                    dto.EstoqueMinimo.Value;
+            }
+
+            if (dto.Ativo.HasValue)
+            {
+                produto.Ativo = dto.Ativo.Value;
+            }
+
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> Inativar(int id)
+        {
+            var produto = await _db.Produtos
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (produto == null)
+            {
+                return NotFound(
+                    "Produto não encontrado.");
+            }
+
+            produto.Ativo = false;
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private static ProdutoDto ParaDto(Produto produto)
+        {
+            return new ProdutoDto
             {
                 Id = produto.Id,
                 Nome = produto.Nome,
@@ -112,44 +347,7 @@ namespace Franquias.Api.Controllers
                 CategoriaId = produto.CategoriaId,
                 FornecedorId = produto.FornecedorId,
                 Ativo = produto.Ativo
-            });
-        }
-
-        [HttpPut("{id}")]
-        [Authorize(Roles = "Administrador,Gestor")]
-        public async Task<IActionResult> Atualizar(int id, [FromBody] AtualizarProdutoDto dto)
-        {
-            var produto = await _db.Produtos.FirstOrDefaultAsync(p => p.Id == id);
-            if (produto == null)
-            {
-                return NotFound();
-            }
-
-            if (!string.IsNullOrWhiteSpace(dto.Nome)) produto.Nome = dto.Nome;
-            if (!string.IsNullOrWhiteSpace(dto.Descricao)) produto.Descricao = dto.Descricao;
-            if (dto.Preco.HasValue) produto.Preco = dto.Preco.Value;
-            if (dto.EstoqueMinimo.HasValue) produto.EstoqueMinimo = dto.EstoqueMinimo.Value;
-            if (dto.CategoriaId.HasValue) produto.CategoriaId = dto.CategoriaId.Value;
-            if (dto.FornecedorId.HasValue) produto.FornecedorId = dto.FornecedorId.Value;
-            if (dto.Ativo.HasValue) produto.Ativo = dto.Ativo.Value;
-
-            await _db.SaveChangesAsync();
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Deletar(int id)
-        {
-            var produto = await _db.Produtos.FirstOrDefaultAsync(p => p.Id == id);
-            if (produto == null)
-            {
-                return NotFound();
-            }
-
-            _db.Produtos.Remove(produto);
-            await _db.SaveChangesAsync();
-            return NoContent();
+            };
         }
     }
 }

@@ -61,13 +61,13 @@ namespace Franquias.Api
         [Column("CNPJ")]
         public string Cnpj { get; set; } = string.Empty;
 
-        [NotMapped]
+        [Column("Email")]
         public string Email { get; set; } = string.Empty;
 
-        [NotMapped]
+        [Column("Ativa")]
         public bool Ativa { get; set; } = true;
 
-        [NotMapped]
+        [Column("DataCadastro")]
         public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
 
         public ICollection<Unidade> Unidades { get; set; } = new List<Unidade>();

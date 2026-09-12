@@ -1,4 +1,5 @@
 using System.Text;
+using Franquias.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -30,6 +31,10 @@ namespace Franquias.Api
                     )
                 )
             );
+
+            services.AddScoped<
+                IRoyaltyCalculatorService,
+                RoyaltyCalculatorService>();
 
             services.AddAuthentication(options =>
             {

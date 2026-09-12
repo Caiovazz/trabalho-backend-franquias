@@ -83,7 +83,7 @@ CREATE TABLE `cobrancaroyalty` (
   PRIMARY KEY (`Id`),
   KEY `IX_CobrancaRoyalty_UnidadeId` (`UnidadeId`),
   CONSTRAINT `FK_CobrancaRoyalty_UnidadeFranqueada_UnidadeId` FOREIGN KEY (`UnidadeId`) REFERENCES `unidadefranqueada` (`Id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -122,7 +122,7 @@ CREATE TABLE `fornecedor` (
   `Ativo` tinyint(1) NOT NULL,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `IX_Fornecedor_CNPJ` (`CNPJ`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -137,9 +137,12 @@ CREATE TABLE `franqueadora` (
   `NomeFantasia` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `RazaoSocial` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `CNPJ` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `Email` varchar(100) NOT NULL DEFAULT '',
+  `Ativa` tinyint(1) NOT NULL DEFAULT '1',
+  `DataCadastro` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`Id`),
   UNIQUE KEY `IX_Franqueadora_CNPJ` (`CNPJ`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -274,7 +277,7 @@ CREATE TABLE `usuarios` (
   UNIQUE KEY `IX_usuarios_Email` (`Email`),
   KEY `IX_usuarios_unidadeId` (`unidadeId`),
   CONSTRAINT `FK_usuarios_UnidadeFranqueada_unidadeId` FOREIGN KEY (`unidadeId`) REFERENCES `unidadefranqueada` (`Id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -312,4 +315,4 @@ CREATE TABLE `venda` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-11 18:11:49
+-- Dump completed on 2026-09-11 20:13:38
