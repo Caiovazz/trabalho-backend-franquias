@@ -1,177 +1,207 @@
-# 🏢 API de Gestão e Operações de Franquias
+# Gestão de Franquias
 
-API RESTful desenvolvida para a **administração centralizada e o controle operacional de redes de franquias**.
+API acadêmica para gerenciamento de uma rede de franquias.
 
-Este projeto universitário foi desenvolvido em **C#**, utilizando a plataforma **ASP.NET Core**, e tem como objetivo estruturar uma solução para gerenciamento de franqueadoras, unidades, usuários e demais operações relacionadas à rede de franquias.
+O projeto permite controlar franqueadoras, unidades, usuários, produtos, fornecedores, estoque, vendas, royalties e chamados de suporte.
 
----
+## Tecnologias utilizadas
 
-## 🛠️ Stack Tecnológica
+- C#
+- ASP.NET Core
+- .NET 10
+- Entity Framework Core
+- MySQL 8
+- Autenticação JWT
+- Swagger/OpenAPI
+- Git e GitHub
 
-| Tecnologia | Utilização |
-|---|---|
-| **C#** | Linguagem de programação |
-| **.NET 10** | Plataforma de desenvolvimento |
-| **ASP.NET Core Web API** | Desenvolvimento da API RESTful |
-| **Swagger / OpenAPI** | Documentação e testes dos endpoints |
-| **Git & GitHub** | Controle de versão e hospedagem do código |
-| **MySQL** | Banco de dados |
-| **Entity Framework Core** | ORM e persistência de dados |
+## Funcionalidades
 
-> **Status da persistência:** a integração com MySQL e Entity Framework Core está prevista para as próximas etapas do projeto.
+- Cadastro e autenticação de usuários.
+- Perfis de Administrador, Gestor e Operador.
+- Cadastro e inativação de franqueadoras.
+- CRUD de unidades franqueadas.
+- Cadastro de responsáveis pelas unidades.
+- CRUD de categorias, produtos e fornecedores.
+- Controle de entrada e saída de estoque.
+- Bloqueio de estoque negativo.
+- Cadastro de vendas e cálculo automático do total.
+- Atualização automática do estoque após uma venda.
+- Configuração e cálculo de royalties.
+- Abertura e encerramento de chamados.
+- Relatórios de faturamento, royalties, estoque e vendas.
+- Filtros e paginação nos principais endpoints.
 
----
-
-## 🏗️ Arquitetura e Estágio Atual
-
-Atualmente, a API possui um fluxo inicial destinado à **validação e sanitização dos dados cadastrais da franqueadora principal**.
-
-Nesta primeira etapa, os dados recebidos são processados **em memória**, sem persistência no banco de dados.
-
-### ✅ Validações Ativas
-
-- Verificação da presença do campo **Nome/Razão Social**;
-- Verificação da presença do **CNPJ**;
-- Verificação da obrigatoriedade do **e-mail**;
-- Validação do formato sintático do e-mail.
-
-### 🔜 Próximas Validações
-
-Nas próximas etapas serão implementadas:
-
-- Validação matemática dos dígitos verificadores do CNPJ;
-- Verificação de duplicidade no banco de dados;
-- Persistência definitiva dos dados.
-
----
-
-## 📋 Pré-requisitos
-
-Para executar a versão atual do projeto, é necessário possuir:
-
-- **.NET 10 SDK** instalado.
-
-> 💡 **Observação:** não é necessário possuir uma instância do **MySQL** em execução para utilizar esta versão preliminar da aplicação.
-
----
-
-## 🚀 Como Executar
-
-### 1. Acesse a raiz do projeto
-
-Abra um terminal na pasta:
+## Estrutura principal
 
 ```text
-trabalho-backend-franquias
+Franquias.Api/
+├── Controllers/
+├── DTOs/
+├── Entities/
+├── Services/
+├── FranquiasDbContext.cs
+├── Startup.cs
+└── Program.cs
+
+database/
+├── franquiasDB-schema.sql
+└── dados-exemplo.sql
+
+docs/
+└── franqueadoras.http
 ```
 
-### 2. Execute a aplicação
+## Requisitos
 
-```bash
-dotnet run --project ./Franquias.Api/Franquias.Api.csproj --launch-profile "Franquias.Api"
-```
+Para executar o projeto é necessário possuir:
 
-### 3. Acesse o Swagger
+- .NET SDK 10
+- MySQL Server 8
+- Git
 
-Com a aplicação em execução, abra:
+## Configuração do banco
 
-[Swagger UI — Franquias API](https://localhost:7051/swagger/index.html?utm_source=chatgpt.com)
-
-Através do Swagger é possível visualizar a documentação da API e realizar testes diretamente pelo navegador.
-
-### 4. Encerrar a aplicação
-
-Para interromper o servidor, utilize:
+O arquivo abaixo cria o banco e suas tabelas:
 
 ```text
-Ctrl + C
+database/franquiasDB-schema.sql
 ```
 
----
+O arquivo abaixo adiciona dados de demonstração:
 
-## 🔗 Mapeamento de Rotas
-
-### 🏢 Checagem Cadastral
-
-| Método | Endpoint | Descrição |
-|---|---|---|
-| `POST` | `/api/franqueadoras/validar` | Valida os dados cadastrais da franqueadora |
-
-### Exemplo de requisição
-
-```http
-POST /api/franqueadoras/validar
-Content-Type: application/json
+```text
+database/dados-exemplo.sql
 ```
 
-```json
-{
-  "nome": "Franqueadora Exemplo LTDA",
-  "cnpj": "00.000.000/0001-00",
-  "email": "contato@exemplo.com"
-}
+Os scripts podem ser executados pelo MySQL Workbench ou pelo cliente de linha de comando do MySQL.
+
+## Configuração segura da conexão
+
+A senha do MySQL não deve ser enviada para o GitHub.
+
+Dentro da pasta `Franquias.Api`, inicialize os User Secrets:
+
+```powershell
+dotnet user-secrets init --project .\Franquias.Api.csproj
 ```
 
----
+Depois configure a conexão, substituindo `SUA_SENHA`:
 
-## 🧪 Registro de Testes Operacionais
+```powershell
+dotnet user-secrets set `
+  "ConnectionStrings:DefaultConnection" `
+  "Server=localhost;Port=3306;Database=franquiasDB;User=root;Password=SUA_SENHA;" `
+  --project .\Franquias.Api.csproj
+```
 
-Os testes iniciais foram realizados através do **Swagger UI**.
+## Como executar
 
-| Cenário | Resultado |
+Na pasta principal do repositório, execute:
+
+```powershell
+dotnet build .\Franquias.Api\Franquias.Api.csproj
+```
+
+Depois:
+
+```powershell
+dotnet run --project .\Franquias.Api\Franquias.Api.csproj --launch-profile "Franquias.Api"
+```
+
+A documentação da API estará disponível em:
+
+```text
+https://localhost:7051/swagger/index.html
+```
+
+Para encerrar a API, pressione `Ctrl + C`.
+
+## Autenticação
+
+O login é realizado por:
+
+```text
+POST /api/Auth/login
+```
+
+O token recebido deve ser informado no botão `Authorize` do Swagger.
+
+Os dados de exemplo incluem um usuário de demonstração:
+
+```text
+E-mail: admin.exemplo@franquias.local
+Senha: Admin123!
+```
+
+Esse usuário deve ser utilizado somente em ambiente local de desenvolvimento.
+
+## Principais endpoints
+
+| Módulo | Endpoints |
 |---|---|
-| Razão Social, CNPJ e e-mail válidos | `200 OK` |
-| Campos obrigatórios ausentes | `400 Bad Request` |
-| E-mail em formato inválido | `400 Bad Request` |
+| Autenticação | `/api/Auth` |
+| Franqueadoras | `/api/franqueadoras` |
+| Unidades | `/api/Unidades` |
+| Responsáveis | `/api/Responsaveis` |
+| Categorias | `/api/Categorias` |
+| Produtos | `/api/Produtos` |
+| Fornecedores | `/api/Fornecedores` |
+| Estoque | `/api/Estoque` |
+| Vendas | `/api/Vendas` |
+| Royalties | `/api/Royalty` |
+| Chamados | `/api/Chamados` |
+| Relatórios | `/api/Relatorios` |
 
-> ⚠️ **Importante:** o código HTTP `200 OK` indica apenas que a requisição atendeu às regras de negócio implementadas nesta etapa. Isso **não significa que os dados foram gravados no banco de dados**.
+## Regras de negócio implementadas
 
----
+- CNPJ de franqueadoras, unidades e fornecedores não pode ser duplicado.
+- Unidades, usuários, produtos e franqueadoras podem ser inativados.
+- Unidades inativas não podem realizar vendas.
+- Produtos inativos não podem ser vendidos.
+- O estoque não pode ficar negativo.
+- A venda calcula automaticamente o valor total.
+- A venda desconta automaticamente os produtos do estoque.
+- O royalty é calculado sobre o faturamento da unidade.
+- Chamados possuem prioridade, situação e data de encerramento.
+- Endpoints protegidos exigem autenticação e perfil autorizado.
 
-## 🗺️ Roadmap
+## Banco de dados
 
-O desenvolvimento do sistema está planejado em etapas:
+O projeto utiliza Entity Framework Core com MySQL.
 
-### 💾 Persistência
-- [ ] Configuração do **Entity Framework Core**;
-- [ ] Configuração da conexão com **MySQL**;
-- [ ] Criação e gerenciamento das **migrations**;
-- [ ] Persistência dos dados cadastrais.
+As entidades são relacionadas por chaves estrangeiras, incluindo:
 
-### 🏢 Gestão de Franquias
-- [ ] CRUD de **Franqueadoras**;
-- [ ] CRUD de **Filiais/Unidades**;
-- [ ] CRUD de **Gestores**.
+- Franqueadora e unidades.
+- Unidade e responsáveis.
+- Categoria, fornecedor e produtos.
+- Unidade, produto e estoque.
+- Venda e itens da venda.
+- Unidade e cobranças de royalty.
+- Unidade, usuário e chamados.
 
-### 🔐 Identidade e Segurança
-- [ ] Implementação de **Identidade**;
-- [ ] Autenticação;
-- [ ] Autorização;
-- [ ] Controle de acesso baseado em funções (**RBAC**).
+## Testes
 
-### 📦 Produtos e Fornecedores
-- [ ] Gestão do catálogo de produtos;
-- [ ] Gestão de categorias;
-- [ ] Gestão da rede de fornecedores.
+Os endpoints foram testados manualmente pelo Swagger, incluindo:
 
-### 💰 Operações
-- [ ] Módulo de vendas;
-- [ ] Controle de estoque das unidades;
-- [ ] Mapeamento e cobrança de royalties.
+- Login e autorização JWT.
+- Cadastro e inativação de usuários.
+- Cadastro e inativação de franqueadoras e unidades.
+- Cadastro de responsáveis.
+- Cadastro de produtos e fornecedores.
+- Entrada e saída de estoque.
+- Bloqueio de saída com saldo insuficiente.
+- Cadastro de venda e atualização do estoque.
+- Cálculo e pagamento de royalties.
+- Abertura e encerramento de chamados.
+- Consultas e relatórios.
 
-### 🎧 Atendimento
-- [ ] Central de atendimento;
-- [ ] Sistema de chamados (**Helpdesk**).
+## Repositório
 
-### 📊 Indicadores e Relatórios
-- [ ] Dashboard de indicadores de desempenho;
-- [ ] Relatórios analíticos;
-- [ ] Visualização de métricas da rede de franquias.
+O desenvolvimento das funcionalidades é realizado na branch:
 
----
+```text
+desenvolvimento
+```
 
-## 📌 Status do Projeto
-
-**Em desenvolvimento 🚧**
-
-O projeto encontra-se em sua fase inicial, com a estrutura da API e as primeiras regras de validação implementadas. As próximas etapas estão concentradas na integração com o banco de dados, persistência das informações e expansão dos módulos de negócio.
+Após os testes, a versão final será integrada à branch `main`.
