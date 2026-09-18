@@ -117,6 +117,7 @@ namespace Franquias.Api
                 .GetRequiredService<FranquiasDbContext>();
 
             db.Database.EnsureCreated();
+            db.SeedData();
 
             if (env.IsDevelopment())
             {
