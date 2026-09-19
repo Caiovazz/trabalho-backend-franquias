@@ -109,8 +109,6 @@ Por exemplo, caso o banco se chame "franquiasDB" e o usuário seja "root":
   "DefaultConnection": "Server=localhost;Port=3306;Database=franquiasDB;User=root;Password=SUA_SENHA;"
 }
 
-«Importante: se o projeto for publicado em um repositório público, não envie senhas reais para o GitHub. Para ambientes de desenvolvimento, produção ou compartilhamento do projeto, utilize variáveis de ambiente ou User Secrets.»
-
 3. Executar a API
 
 Depois de configurar a conexão, execute o projeto:
