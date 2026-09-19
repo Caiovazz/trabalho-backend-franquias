@@ -1,10 +1,10 @@
-# Gestão de Franquias
+Gestão de Franquias
 
 API acadêmica para gerenciamento de uma rede de franquias.
 
 O projeto permite controlar franqueadoras, unidades, usuários, produtos, fornecedores, estoque, vendas, royalties e chamados de suporte.
 
-## Tecnologias utilizadas
+Tecnologias utilizadas
 
 - C#
 - ASP.NET Core
@@ -15,7 +15,7 @@ O projeto permite controlar franqueadoras, unidades, usuários, produtos, fornec
 - Swagger/OpenAPI
 - Git e GitHub
 
-## Funcionalidades
+Funcionalidades
 
 - Cadastro e autenticação de usuários.
 - Perfis de Administrador, Gestor e Operador.
@@ -32,9 +32,8 @@ O projeto permite controlar franqueadoras, unidades, usuários, produtos, fornec
 - Relatórios de faturamento, royalties, estoque e vendas.
 - Filtros e paginação nos principais endpoints.
 
-## Estrutura principal
+Estrutura principal
 
-```text
 Franquias.Api/
 ├── Controllers/
 ├── DTOs/
@@ -50,110 +49,162 @@ database/
 
 docs/
 └── franqueadoras.http
-```
 
-## Requisitos
+Requisitos
 
 Para executar o projeto é necessário possuir:
 
 - .NET SDK 10
 - MySQL Server 8
 - Git
+- Um SGBD para gerenciamento do banco de dados
 
-## Configuração do banco
+SGBD recomendado
 
-O arquivo abaixo cria o banco e suas tabelas:
+Recomenda-se utilizar o MySQL Workbench, pois o projeto utiliza MySQL e o Workbench oferece melhor compatibilidade para executar e visualizar o banco de dados.
 
-```text
-database/franquiasDB-schema.sql
-```
+---
 
-O arquivo abaixo adiciona dados de demonstração:
+Configuração do banco de dados
 
-```text
-database/dados-exemplo.sql
-```
+Para executar o projeto, primeiro é necessário criar um banco de dados vazio no seu SGBD.
 
-Os scripts podem ser executados pelo MySQL Workbench ou pelo cliente de linha de comando do MySQL.
+Não é necessário criar manualmente as tabelas, relacionamentos ou outras estruturas do banco.
 
-## Configuração segura da conexão
+1. Criar um banco vazio
 
-A senha do MySQL não deve ser enviada para o GitHub.
+No MySQL Workbench, crie apenas o banco de dados que será utilizado pela API.
 
-Dentro da pasta `Franquias.Api`, inicialize os User Secrets:
+Por exemplo:
 
-```powershell
-dotnet user-secrets init --project .\Franquias.Api.csproj
-```
+CREATE DATABASE teste1;
 
-Depois configure a conexão, substituindo `SUA_SENHA`:
+«O nome do banco pode ser diferente. Nesse caso, utilize o mesmo nome na configuração da aplicação.»
 
-```powershell
-dotnet user-secrets set `
-  "ConnectionStrings:DefaultConnection" `
-  "Server=localhost;Port=3306;Database=franquiasDB;User=root;Password=SUA_SENHA;" `
-  --project .\Franquias.Api.csproj
-```
+2. Configurar a conexão da API
 
-## Como executar
+Depois de criar o banco vazio, abra o arquivo:
 
-Na pasta principal do repositório, execute:
+Franquias.Api/appsettings.json
 
-```powershell
+Localize a configuração "ConnectionStrings" e informe os dados do seu banco.
+
+Exemplo:
+
+"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost;Port=3306;Database=teste1;User=root;Password=;"
+}
+
+Altere os valores conforme a configuração do seu ambiente:
+
+- "Server": endereço do servidor MySQL.
+- "Port": porta utilizada pelo MySQL, normalmente "3306".
+- "Database": nome do banco vazio criado anteriormente.
+- "User": usuário do MySQL.
+- "Password": senha do usuário do MySQL.
+
+Por exemplo, caso o banco se chame "franquiasDB" e o usuário seja "root":
+
+"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost;Port=3306;Database=franquiasDB;User=root;Password=SUA_SENHA;"
+}
+
+«Importante: se o projeto for publicado em um repositório público, não envie senhas reais para o GitHub. Para ambientes de desenvolvimento, produção ou compartilhamento do projeto, utilize variáveis de ambiente ou User Secrets.»
+
+3. Executar a API
+
+Depois de configurar a conexão, execute o projeto:
+
 dotnet build .\Franquias.Api\Franquias.Api.csproj
-```
 
 Depois:
 
-```powershell
 dotnet run --project .\Franquias.Api\Franquias.Api.csproj --launch-profile "Franquias.Api"
-```
+
+Ao iniciar a API, o Entity Framework Core criará automaticamente as tabelas e os relacionamentos necessários no banco de dados configurado.
+
+Portanto, o banco criado inicialmente precisa estar vazio. A API será responsável por criar sua estrutura.
+
+4. Popular o banco com dados de exemplo
+
+Depois que a API for executada e as tabelas forem criadas, utilize o arquivo:
+
+database/dados-exemplo.sql
+
+Abra o arquivo no MySQL Workbench, conecte-se ao mesmo banco configurado no "appsettings.json" e execute os comandos SQL.
+
+Esses comandos irão inserir os dados de demonstração necessários para testar a aplicação.
+
+O fluxo completo é:
+
+Criar banco vazio
+       ↓
+Configurar appsettings.json
+       ↓
+Subir a API
+       ↓
+Entity Framework cria as tabelas
+       ↓
+Abrir dados-exemplo.sql
+       ↓
+Executar os comandos no MySQL Workbench
+       ↓
+Banco populado
+       ↓
+API pronta para utilização
+
+Depois disso, a API poderá ser utilizada normalmente pelo Swagger e pelos demais clientes HTTP.
+
+---
+
+Como executar
+
+Na pasta principal do repositório, execute:
+
+dotnet build .\Franquias.Api\Franquias.Api.csproj
+
+Depois:
+
+dotnet run --project .\Franquias.Api\Franquias.Api.csproj --launch-profile "Franquias.Api"
 
 A documentação da API estará disponível em:
 
-```text
 https://localhost:7051/swagger/index.html
-```
 
-Para encerrar a API, pressione `Ctrl + C`.
+Para encerrar a API, pressione "Ctrl + C".
 
-## Autenticação
+Autenticação
 
 O login é realizado por:
 
-```text
 POST /api/Auth/login
-```
 
-O token recebido deve ser informado no botão `Authorize` do Swagger.
+O token recebido deve ser informado no botão "Authorize" do Swagger.
 
 Os dados de exemplo incluem um usuário de demonstração:
 
-```text
 E-mail: admin.exemplo@franquias.local
 Senha: Admin123!
-```
 
 Esse usuário deve ser utilizado somente em ambiente local de desenvolvimento.
 
-## Principais endpoints
+Principais endpoints
 
-| Módulo | Endpoints |
-|---|---|
-| Autenticação | `/api/Auth` |
-| Franqueadoras | `/api/franqueadoras` |
-| Unidades | `/api/Unidades` |
-| Responsáveis | `/api/Responsaveis` |
-| Categorias | `/api/Categorias` |
-| Produtos | `/api/Produtos` |
-| Fornecedores | `/api/Fornecedores` |
-| Estoque | `/api/Estoque` |
-| Vendas | `/api/Vendas` |
-| Royalties | `/api/Royalty` |
-| Chamados | `/api/Chamados` |
-| Relatórios | `/api/Relatorios` |
+Módulo| Endpoints
+Autenticação| "/api/Auth"
+Franqueadoras| "/api/franqueadoras"
+Unidades| "/api/Unidades"
+Responsáveis| "/api/Responsaveis"
+Categorias| "/api/Categorias"
+Produtos| "/api/Produtos"
+Fornecedores| "/api/Fornecedores"
+Estoque| "/api/Estoque"
+Vendas| "/api/Vendas"
+Royalties| "/api/Royalty"
+Chamados| "/api/Chamados"
+Relatórios| "/api/Relatorios"
 
-## Regras de negócio implementadas
+Regras de negócio implementadas
 
 - CNPJ de franqueadoras, unidades e fornecedores não pode ser duplicado.
 - Unidades, usuários, produtos e franqueadoras podem ser inativados.
@@ -166,11 +217,13 @@ Esse usuário deve ser utilizado somente em ambiente local de desenvolvimento.
 - Chamados possuem prioridade, situação e data de encerramento.
 - Endpoints protegidos exigem autenticação e perfil autorizado.
 
-## Banco de dados
+Banco de dados
 
 O projeto utiliza Entity Framework Core com MySQL.
 
-As entidades são relacionadas por chaves estrangeiras, incluindo:
+As tabelas e seus relacionamentos são criados automaticamente pela aplicação a partir da configuração do Entity Framework Core.
+
+As principais relações incluem:
 
 - Franqueadora e unidades.
 - Unidade e responsáveis.
@@ -180,7 +233,7 @@ As entidades são relacionadas por chaves estrangeiras, incluindo:
 - Unidade e cobranças de royalty.
 - Unidade, usuário e chamados.
 
-## Testes
+Testes
 
 Os endpoints foram testados manualmente pelo Swagger, incluindo:
 
@@ -196,12 +249,12 @@ Os endpoints foram testados manualmente pelo Swagger, incluindo:
 - Abertura e encerramento de chamados.
 - Consultas e relatórios.
 
-## Repositório
+Repositório
 
 O desenvolvimento das funcionalidades é realizado na branch:
 
-```text
 desenvolvimento
-```
 
-Após os testes, a versão final será integrada à branch `main`.
+Após os testes, a versão final será integrada à branch:
+
+main
